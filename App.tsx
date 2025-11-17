@@ -6,7 +6,6 @@ import { PaymentPage } from './components/PaymentPage';
 import { PaymentSuccess } from './components/PaymentSuccess';
 import { PaymentCancel } from './components/PaymentCancel';
 import { LIFETIME_PLANS, SUBSCRIPTION_PLANS } from './constants';
-import './config'; // Initialize product mapping
 
 const HomePage: React.FC = () => {
   const [selectedLifetimePlan, setSelectedLifetimePlan] = useState<string>('lifetime-1');

@@ -1,4 +1,4 @@
-import { createOrder } from './woocommerce';
+// myPOS IPC Direct Integration Service
 
 export interface PaymentData {
   orderId: string;
@@ -9,19 +9,10 @@ export interface PaymentData {
 }
 
 class MyPOSService {
-  // Map your plan IDs to WooCommerce product IDs
-  // TODO: Update these with your actual WooCommerce product IDs after creating products
-  private productMapping: Record<string, number> = {
-    'sub-12': 0,    // Replace with actual product ID for 12 months
-    'sub-18': 0,    // Replace with actual product ID for 18 months
-    'lifetime': 0   // Replace with actual product ID for lifetime
-  };
+  private backendUrl: string;
 
-  /**
-   * Update product mapping with actual WooCommerce product IDs
-   */
-  setProductMapping(planId: string, productId: number) {
-    this.productMapping[planId] = productId;
+  constructor() {
+    this.backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4001';
   }
 
   /**
@@ -32,56 +23,81 @@ class MyPOSService {
   }
 
   /**
-   * Initiate payment through WooCommerce + myPOS
+   * Initiate payment using myPOS IPC
    */
   async initiatePayment(paymentData: PaymentData): Promise<void> {
     try {
-      const productId = this.productMapping[paymentData.planId];
-      
-      if (!productId || productId === 0) {
-        console.error('⚠️ Product ID not configured for plan:', paymentData.planId);
-        alert(
-          'Product mapping not configured. Please update the product IDs in services/mypos.ts\n\n' +
-          `Plan: ${paymentData.planId}\n` +
-          'Check HYBRID-SETUP-GUIDE.md for instructions.'
-        );
-        return;
-      }
-
-      console.log('🔄 Creating order via WooCommerce API...', {
-        planId: paymentData.planId,
-        productId: productId,
-        planTitle: paymentData.planTitle,
-        amount: paymentData.amount
-      });
-
-      const result = await createOrder({
-        productId,
-        planTitle: paymentData.planTitle,
+      console.log('🔄 Creating myPOS IPC payment...', {
+        orderId: paymentData.orderId,
         amount: paymentData.amount,
+        planTitle: paymentData.planTitle,
       });
 
-      if (result.success && result.checkoutUrl) {
-        console.log('✅ Order created successfully!');
-        console.log('🔗 Redirecting to WooCommerce checkout with myPOS...');
-        console.log('Order ID:', result.orderId);
-        console.log('Checkout URL:', result.checkoutUrl);
-        
-        // Redirect to WooCommerce checkout (which will show myPOS payment)
-        window.location.href = result.checkoutUrl;
-      } else {
-        throw new Error(result.error || 'Failed to create order');
+      // Extract numeric amount
+      const numericAmount = paymentData.amount.replace('$', '');
+
+      // Call backend to generate signed payment form
+      const response = await fetch(`${this.backendUrl}/api/create-payment`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          orderId: paymentData.orderId,
+          amount: numericAmount,
+          currency: paymentData.currency,
+          planTitle: paymentData.planTitle,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (!result.success) {
+        throw new Error(result.error || 'Failed to create payment');
       }
+
+      console.log('✅ Payment form data received');
+      console.log('🔗 IPC URL:', result.ipcUrl);
+
+      // Create and submit form to myPOS
+      this.submitPaymentForm(result.ipcUrl, result.formData);
+
     } catch (error: any) {
       console.error('❌ Error initiating payment:', error);
       alert(
         `Failed to initiate payment: ${error.message}\n\n` +
         'Please check:\n' +
-        '1. WooCommerce API credentials are correct\n' +
-        '2. Product IDs are configured\n' +
-        '3. WordPress site is accessible'
+        '1. Backend server is running (npm run server)\n' +
+        '2. myPOS credentials are configured\n' +
+        '3. Browser console for more details'
       );
     }
+  }
+
+  /**
+   * Create and submit HTML form to myPOS
+   */
+  private submitPaymentForm(ipcUrl: string, formData: Record<string, string>): void {
+    // Create form element
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = ipcUrl;
+    form.style.display = 'none';
+
+    // Add all form fields
+    Object.entries(formData).forEach(([key, value]) => {
+      const input = document.createElement('input');
+      input.type = 'hidden';
+      input.name = key;
+      input.value = String(value);
+      form.appendChild(input);
+    });
+
+    // Add form to page and submit
+    document.body.appendChild(form);
+    
+    console.log('🚀 Submitting payment form to myPOS...');
+    form.submit();
   }
 
   /**
@@ -92,16 +108,29 @@ class MyPOSService {
     orderId?: string;
     message: string;
   } {
-    const status = params.get('status');
-    const orderId = params.get('order_id') || params.get('order-received');
+    // myPOS returns different parameters
+    const status = params.get('Status');
+    const orderId = params.get('OrderID');
+    const statusCode = params.get('StatusCode');
 
-    if (status === 'success' || status === 'completed' || params.has('order-received')) {
+    console.log('Payment callback received:', {
+      status,
+      statusCode,
+      orderId,
+    });
+
+    // Status codes from myPOS:
+    // 0 = Success
+    // -1 = Cancelled by user
+    // Other = Error
+
+    if (status === '0' || statusCode === '0') {
       return {
         status: 'success',
         orderId: orderId || undefined,
         message: 'Payment completed successfully!',
       };
-    } else if (status === 'cancelled' || status === 'canceled' || status === 'failed') {
+    } else if (status === '-1' || statusCode === '-1') {
       return {
         status: 'cancel',
         orderId: orderId || undefined,
@@ -110,7 +139,7 @@ class MyPOSService {
     } else {
       return {
         status: 'error',
-        message: 'Payment status unknown. Please check your order confirmation email.',
+        message: 'Payment failed. Please try again.',
       };
     }
   }
