@@ -1,0 +1,52 @@
+# Dependencies
+node_modules/
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Production
+/build
+/dist
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Server
+server/node_modules/
+server/.env
+server/package-lock.json
+
+# Temporary files
+*.log
+.cache/
+
+# Sensitive data
+*.pem
+*.key
+*.cert
+*.crt
+test-*.js
+get-product-ids.js
+
+# Build files
+*.tsbuildinfo
