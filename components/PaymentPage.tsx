@@ -1,12 +1,12 @@
 import React, { useEffect, useState } from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { SUBSCRIPTION_PLANS, LIFETIME_PLANS } from '../constants';
+import { myPOSService } from '../services/mypos';
 
 export const PaymentPage: React.FC = () => {
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
 
   const planId = searchParams.get('plan');
   const planType = searchParams.get('type'); // 'subscription' or 'lifetime'
@@ -21,57 +21,17 @@ export const PaymentPage: React.FC = () => {
     }
   }, [selectedPlan, navigate]);
 
-  const handlePayment = async () => {
+  const handlePayment = () => {
     if (!selectedPlan) return;
 
     setLoading(true);
-    setError(null);
 
-    try {
-      const orderId = `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-      const amount = parseFloat(selectedPlan.price.replace('$', ''));
-
-      // Call backend API to create payment
-      const response = await fetch('http://localhost:4000/api/create-payment', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          orderId,
-          amount,
-          currency: 'USD',
-          description: `Payment for ${selectedPlan.title}`,
-          planId: selectedPlan.id,
-          planTitle: selectedPlan.title,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create payment session');
-      }
-
-      const data = await response.json();
-
-      // Redirect to myPOS checkout if URL is provided
-      if (data.checkout_url) {
-        window.location.href = data.checkout_url;
-      } else {
-        // For demo: redirect to success page
-        const params = new URLSearchParams({
-          status: 'success',
-          order_id: orderId,
-          amount: amount.toString(),
-          currency: 'USD',
-          plan: selectedPlan.title,
-        });
-        navigate(`/payment-success?${params.toString()}`);
-      }
-    } catch (err) {
-      console.error('Payment error:', err);
-      setError('Failed to process payment. Please try again.');
-      setLoading(false);
-    }
+    // Redirect to myPOS payment link
+    myPOSService.initiatePayment({
+      planId: selectedPlan.id,
+      planTitle: selectedPlan.title,
+      amount: selectedPlan.price,
+    });
   };
 
   if (!selectedPlan) {
@@ -132,12 +92,6 @@ export const PaymentPage: React.FC = () => {
             </div>
           </div>
 
-          {error && (
-            <div className="mb-6 bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-red-700 text-sm">{error}</p>
-            </div>
-          )}
-
           {/* Action Buttons */}
           <div className="space-y-3">
             <button
@@ -155,7 +109,7 @@ export const PaymentPage: React.FC = () => {
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
                     <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
                   </svg>
-                  Processing...
+                  Redirecting...
                 </span>
               ) : (
                 `Pay ${selectedPlan.price}`
@@ -164,7 +118,8 @@ export const PaymentPage: React.FC = () => {
 
             <button
               onClick={() => navigate('/')}
-              className="w-full py-4 rounded-lg font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors"
+              disabled={loading}
+              className="w-full py-4 rounded-lg font-semibold text-gray-700 bg-gray-200 hover:bg-gray-300 transition-colors disabled:opacity-50"
             >
               Cancel
             </button>

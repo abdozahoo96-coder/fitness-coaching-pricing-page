@@ -1,103 +1,72 @@
-// myPOS IPC Direct Integration Service
+// myPOS Payment Links Service
 
 export interface PaymentData {
-  orderId: string;
-  amount: string;
-  currency: string;
-  planTitle: string;
   planId: string;
+  planTitle: string;
+  amount: string;
 }
 
+/**
+ * myPOS Payment Links Configuration
+ * 
+ * Replace these URLs with your actual myPOS payment links
+ * To create payment links:
+ * 1. Log into myPOS dashboard
+ * 2. Go to Payment Links or Virtual POS
+ * 3. Create a link for each product
+ * 4. Copy the URLs here
+ */
+
+const PAYMENT_LINKS: Record<string, string> = {
+  // Lifetime Plans
+  'lifetime-1': 'https://mypos.com/vmp/checkout/YOUR_LINK_1_MEMBER',
+  'lifetime-2': 'https://mypos.com/vmp/checkout/YOUR_LINK_2_MEMBERS',
+  'lifetime-3': 'https://mypos.com/vmp/checkout/YOUR_LINK_3_MEMBERS',
+  'lifetime-4': 'https://mypos.com/vmp/checkout/YOUR_LINK_4_MEMBERS',
+  'lifetime-5': 'https://mypos.com/vmp/checkout/YOUR_LINK_5_MEMBERS',
+  
+  // Subscription Plans
+  'sub-1': 'https://mypos.com/vmp/checkout/YOUR_LINK_1_MONTH',
+  'sub-3': 'https://mypos.com/vmp/checkout/YOUR_LINK_3_MONTHS',
+  'sub-6': 'https://mypos.com/vmp/checkout/YOUR_LINK_6_MONTHS',
+  'sub-12': 'https://mypos.com/vmp/checkout/YOUR_LINK_12_MONTHS',
+  'sub-24': 'https://mypos.com/vmp/checkout/YOUR_LINK_24_MONTHS',
+};
+
 class MyPOSService {
-  private backendUrl: string;
-
-  constructor() {
-    this.backendUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:4001';
-  }
-
   /**
-   * Generate a unique order ID
+   * Initiate payment using myPOS payment link
    */
-  generateOrderId(): string {
-    return `ORDER-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`;
-  }
+  initiatePayment(paymentData: PaymentData): void {
+    const paymentLink = PAYMENT_LINKS[paymentData.planId];
 
-  /**
-   * Initiate payment using myPOS IPC
-   */
-  async initiatePayment(paymentData: PaymentData): Promise<void> {
-    try {
-      console.log('🔄 Creating myPOS IPC payment...', {
-        orderId: paymentData.orderId,
-        amount: paymentData.amount,
-        planTitle: paymentData.planTitle,
-      });
-
-      // Extract numeric amount
-      const numericAmount = paymentData.amount.replace('$', '');
-
-      // Call backend to generate signed payment form
-      const response = await fetch(`${this.backendUrl}/api/create-payment`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          orderId: paymentData.orderId,
-          amount: numericAmount,
-          currency: paymentData.currency,
-          planTitle: paymentData.planTitle,
-        }),
-      });
-
-      const result = await response.json();
-
-      if (!result.success) {
-        throw new Error(result.error || 'Failed to create payment');
-      }
-
-      console.log('✅ Payment form data received');
-      console.log('🔗 IPC URL:', result.ipcUrl);
-
-      // Create and submit form to myPOS
-      this.submitPaymentForm(result.ipcUrl, result.formData);
-
-    } catch (error: any) {
-      console.error('❌ Error initiating payment:', error);
+    if (!paymentLink) {
+      console.error('❌ Payment link not found for plan:', paymentData.planId);
       alert(
-        `Failed to initiate payment: ${error.message}\n\n` +
-        'Please check:\n' +
-        '1. Backend server is running (npm run server)\n' +
-        '2. myPOS credentials are configured\n' +
-        '3. Browser console for more details'
+        `Payment link not configured for ${paymentData.planTitle}.\n\n` +
+        'Please contact support or choose another plan.'
       );
+      return;
     }
-  }
 
-  /**
-   * Create and submit HTML form to myPOS
-   */
-  private submitPaymentForm(ipcUrl: string, formData: Record<string, string>): void {
-    // Create form element
-    const form = document.createElement('form');
-    form.method = 'POST';
-    form.action = ipcUrl;
-    form.style.display = 'none';
+    if (paymentLink.includes('YOUR_LINK')) {
+      console.error('❌ Payment link not configured');
+      alert(
+        `Payment links need to be configured.\n\n` +
+        'Please update the payment links in services/mypos.ts'
+      );
+      return;
+    }
 
-    // Add all form fields
-    Object.entries(formData).forEach(([key, value]) => {
-      const input = document.createElement('input');
-      input.type = 'hidden';
-      input.name = key;
-      input.value = String(value);
-      form.appendChild(input);
+    console.log('🔗 Redirecting to myPOS payment link:', {
+      planId: paymentData.planId,
+      planTitle: paymentData.planTitle,
+      amount: paymentData.amount,
+      link: paymentLink,
     });
 
-    // Add form to page and submit
-    document.body.appendChild(form);
-    
-    console.log('🚀 Submitting payment form to myPOS...');
-    form.submit();
+    // Redirect to myPOS payment link
+    window.location.href = paymentLink;
   }
 
   /**
