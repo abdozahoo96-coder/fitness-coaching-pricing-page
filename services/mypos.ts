@@ -18,12 +18,12 @@ export interface PaymentData {
  */
 
 const PAYMENT_LINKS: Record<string, string> = {
-  // Lifetime Plans
-  'lifetime-1': 'https://mypos.com/vmp/checkout/YOUR_LINK_1_MEMBER',
-  'lifetime-2': 'https://mypos.com/vmp/checkout/YOUR_LINK_2_MEMBERS',
-  'lifetime-3': 'https://mypos.com/vmp/checkout/YOUR_LINK_3_MEMBERS',
-  'lifetime-4': 'https://mypos.com/vmp/checkout/YOUR_LINK_4_MEMBERS',
-  'lifetime-5': 'https://mypos.com/vmp/checkout/YOUR_LINK_5_MEMBERS',
+  // Lifetime Plans - Contact via WhatsApp
+  'lifetime-1': 'https://wa.me/message/RQAP2VWXTUEPG1', // ✅ WhatsApp - $289
+  'lifetime-2': 'https://wa.me/message/RQAP2VWXTUEPG1', // ✅ WhatsApp - $416
+  'lifetime-3': 'https://wa.me/message/RQAP2VWXTUEPG1', // ✅ WhatsApp - $543
+  'lifetime-4': 'https://wa.me/message/RQAP2VWXTUEPG1', // ✅ WhatsApp - $670
+  'lifetime-5': 'https://wa.me/message/RQAP2VWXTUEPG1', // ✅ WhatsApp - $797
   
   // Subscription Plans
   'sub-1': 'https://mypos.com/vmp/btn/BVLCDHBU31M23', // ✅ 1 Month - $10.99
