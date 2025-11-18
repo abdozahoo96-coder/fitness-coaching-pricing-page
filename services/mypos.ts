@@ -26,7 +26,7 @@ const PAYMENT_LINKS: Record<string, string> = {
   'lifetime-5': 'https://mypos.com/vmp/checkout/YOUR_LINK_5_MEMBERS',
   
   // Subscription Plans
-  'sub-1': 'https://mypos.com/vmp/checkout/YOUR_LINK_1_MONTH',
+  'sub-1': 'https://mypos.com/vmp/btn/BVLCDHBU31M23', // ✅ 1 Month - $10.99
   'sub-3': 'https://mypos.com/vmp/checkout/YOUR_LINK_3_MONTHS',
   'sub-6': 'https://mypos.com/vmp/checkout/YOUR_LINK_6_MONTHS',
   'sub-12': 'https://mypos.com/vmp/checkout/YOUR_LINK_12_MONTHS',
