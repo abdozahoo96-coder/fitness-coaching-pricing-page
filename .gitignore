@@ -50,3 +50,4 @@ get-product-ids.js
 
 # Build files
 *.tsbuildinfo
+.vercel
